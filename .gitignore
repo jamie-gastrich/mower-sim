@@ -1,0 +1,23 @@
+# ROS 2 / colcon build output
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+
+# C++ build output
+*.o
+*.a
+*.so
+*.out
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+
+# Editors and OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
