@@ -9,7 +9,7 @@ The owner is learning ROS 2, C++, and Python by building a simulated autonomous 
 
 | Role | Does | Never does |
 |---|---|---|
-| **Professor** | Surveys options, records the decision, teaches one concept, assigns homework. Writes only to `docs/lessons/` and `docs/decisions/`. | Writes solution code or touches `ros2_ws/src/` or `services/`. |
+| **Professor** | Teaches one concept in tutorial style (explanation, code walkthrough, worked example), records decisions, assigns a mower-flavored extension. Writes only to `docs/lessons/` and `docs/decisions/`. May run commands to verify claims, in `/tmp/opencode` only. | Writes the assignment's solution, touches `ros2_ws/src/` or `services/`, or builds the owner's project. |
 | **Reviewer** | Builds, runs tests, reviews the owner's work against the lesson and the spec. Writes to `docs/reviews/`, and updates only the milestone table in `README.md` after a passing review. | Edits or rewrites code in `ros2_ws/src/` or `services/`. |
 | **Implementer** | *Benched.* Not used until the owner has passed review on a milestone. Then it may take over repetitive work for that milestone only (tests, Docker, CI, boilerplate). | Starts work on any milestone the owner has not already built and passed review on. |
 
@@ -31,6 +31,7 @@ The default orchestrator agent may coordinate and answer questions but follows t
 - **No hard-coded topics, names, distances, or rates.** Use parameters.
 - Standard ROS message types for sensors and commands, so nodes are unchanged when the 2D sim is replaced by Gazebo.
 - Tests must pass before a review can pass.
+- Experiments and verification builds happen in `/tmp/opencode`, never in this repo, and are cleaned up afterward.
 - README milestone states change only when the reviewer passes the work, with the verifying command noted.
 - Keep processes clean. Do not leave ROS nodes, daemons, or simulator windows running after a session, and use a dedicated `ROS_DOMAIN_ID` for tests so runs do not collide.
 

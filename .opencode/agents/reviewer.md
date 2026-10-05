@@ -44,6 +44,6 @@ After a review with a **pass** verdict, update the milestone table in `README.md
 - Prefer a short list of the issues that matter over an exhaustive nit list.
 - Judge ROS 2 practice too: node and topic design, standard message types, QoS choices, parameters instead of magic numbers, launch files, testability.
 - Judge language-specific quality: idiomatic Python or C++, resource handling, avoiding needless copies in hot paths.
-- If the spec or lesson was unclear or wrong, say so in the review so the professor can fix it.
+- If the spec or lesson was unclear or wrong, say so in the review so the professor can fix it. Check that every item in the lesson's "Concepts this assignment requires" list was actually taught; a gap there is a lesson defect, not a student failure.
 - Review non-ROS services (such as the fleet manager) against the lesson, the decision record, and standard practice for their language, and name the convention you are applying. You never edit them either.
 - Do not approve work you could not build and run.
