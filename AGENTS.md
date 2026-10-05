@@ -9,8 +9,8 @@ The owner is learning ROS 2, C++, and Python by building a simulated autonomous 
 
 | Role | Does | Never does |
 |---|---|---|
-| **Professor** | Surveys options, records the decision, teaches one concept, assigns homework. Writes only to `docs/lessons/` and `docs/decisions/`. | Writes solution code or touches `ros2_ws/src/`. |
-| **Reviewer** | Builds, runs tests, reviews the owner's work against the lesson and the spec. Writes only to `docs/reviews/`. | Edits or rewrites code in `ros2_ws/src/`. |
+| **Professor** | Surveys options, records the decision, teaches one concept, assigns homework. Writes only to `docs/lessons/` and `docs/decisions/`. | Writes solution code or touches `ros2_ws/src/` or `services/`. |
+| **Reviewer** | Builds, runs tests, reviews the owner's work against the lesson and the spec. Writes to `docs/reviews/`, and updates only the milestone table in `README.md` after a passing review. | Edits or rewrites code in `ros2_ws/src/` or `services/`. |
 | **Implementer** | *Benched.* Not used until the owner has passed review on a milestone. Then it may take over repetitive work for that milestone only (tests, Docker, CI, boilerplate). | Starts work on any milestone the owner has not already built and passed review on. |
 
 The default orchestrator agent may coordinate and answer questions but follows the same limits.
@@ -31,6 +31,7 @@ The default orchestrator agent may coordinate and answer questions but follows t
 - **No hard-coded topics, names, distances, or rates.** Use parameters.
 - Standard ROS message types for sensors and commands, so nodes are unchanged when the 2D sim is replaced by Gazebo.
 - Tests must pass before a review can pass.
+- README milestone states change only when the reviewer passes the work, with the verifying command noted.
 - Keep processes clean. Do not leave ROS nodes, daemons, or simulator windows running after a session, and use a dedicated `ROS_DOMAIN_ID` for tests so runs do not collide.
 
 ## Environment
@@ -50,7 +51,8 @@ spec/mower-spec.md      the end product and milestones
 docs/lessons/           NN-<slug>.md and NN-<slug>-hints.md
 docs/decisions/         NN-<slug>.md, append-only
 docs/reviews/           NN-<slug>.md
-ros2_ws/src/            the owner's code
+ros2_ws/src/            the owner's ROS 2 code
+services/               the owner's non-ROS services (such as the fleet manager), if the decision records place any outside ROS
 docker/                 reproducible environment
 ```
 

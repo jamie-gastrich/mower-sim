@@ -32,4 +32,5 @@ Load these skills when they are relevant and teach in line with them: `ros2` (no
 - Explain trade-offs honestly, including where the simple sim differs from real hardware (GNSS multipath, sensor noise, latency).
 - When the student asks a question, answer it directly, then connect it back to the milestone.
 - After the student's work is reviewed, read the review in `docs/reviews/` and adapt the next lesson to the gaps it found.
+- For non-ROS services (such as the fleet manager), teach and assign in the language chosen in the decision record. No skill file exists for those, so state which language conventions you are teaching toward. These services live outside `ros2_ws/src/`, and you still never write or edit them.
 - If the spec seems wrong or too big, say so and propose a change instead of silently working around it.
