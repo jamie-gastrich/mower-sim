@@ -32,13 +32,13 @@ This is a learning and portfolio project modeled on the kind of system a robotic
 ## Milestones
 Each milestone is a vertical slice: it runs end to end before the next one starts.
 
-**M0: Workspace and tooling.** Repo layout, Docker image, colcon build, one hello-world node in Python and one in C++, a test that runs in CI-style.
+**M0: Workspace and tooling.** Repo layout, Docker image, colcon build, one real node in Python (`mower_status`), a test that runs in CI-style. The first C++ node arrives at M2; the per-part language split is recorded in decision record 02.
 *Done when:* clean build in a fresh container, tests pass.
 
 **M1: Mower model and 2D sim.** Differential-drive (or Ackermann; decided in the survey) kinematics with turning-radius limits. Sim publishes pose and a first sensor (odometry + IMU).
 *Done when:* teleop drives the mower; recorded bag replays the same behavior.
 
-**M2: Localization.** Add simulated RTK GNSS with realistic noise. Fuse GNSS + IMU + odometry in an EKF.
+**M2: Localization.** Add simulated RTK GNSS with realistic noise. Fuse GNSS + IMU + odometry in an EKF, written in C++ (decision record 02 — the project's first C++ node).
 *Done when:* estimated pose error vs. ground truth is measured and reported; target within a few centimeters in a clean-sky scenario, with a defined degradation when GNSS drops out.
 
 **M3: Stripe planning and path tracking.** Coverage path (boustrophedon stripes) for a polygon boundary; path tracker respecting turning limits.

@@ -23,7 +23,7 @@
 
 M0 in the spec is "Repo layout, Docker image, colcon build, one hello-world node in Python and one in C++, a test that runs in CI-style." Its done-when is "clean build in a fresh container, tests pass."
 
-This lesson is the first half of that: the layout decision, the build loop, and one real node in Python. Lesson 02 does the same node in C++ so you feel the difference between the two build systems. Lesson 03 makes `colcon test` mean something.
+This lesson is the first half of that: the layout decision, the build loop, and one real node in Python. Lesson 03 makes `colcon test` mean something. The C++ half of "mixing Python and C++ nodes" is **not** taught at M0: decision record 02 allocates C++ to M2 (`mower_localization`) and keeps this `status_node` Python permanently, so the two build systems first sit side by side when the EKF is built.
 
 The node you are going to build is not a throwaway hello-world. It is the `status_node` in package `mower_status`: the node that says a mower is alive and healthy. That node exists in the final system. M4 hangs the safety state machine off it, M6 draws it on a dashboard, and M7's fleet manager polls a fleet of them over MQTT to decide whether to reassign a mower's work. Everything you learn about parameters, private topic names, and message types here is used again in every one of those milestones.
 
@@ -960,7 +960,7 @@ Make the level mean something. Add a fourth parameter, `state` (string, default 
 
 ## 19. Where this leaves M0
 
-Done after this lesson and a passing review: repo layout, colcon build loop, and one real Python node with parameters and a standard message type. Lesson 02 rebuilds this same node in C++ so the two build systems are side by side. Lesson 03 makes the test suite real. Lesson 04 puts the whole thing in a container, which is where M0's done-when actually gets decided.
+Done after this lesson and a passing review: repo layout, colcon build loop, and one real Python node with parameters and a standard message type. Lesson 03 makes the test suite real. Lesson 04 puts the whole thing in a container, which is where M0's done-when actually gets decided. The C++ build system is taught at M2 instead (decision record 02), when the first C++ node — `mower_localization`'s EKF — is actually designed.
 
 ## 20. Commit
 
