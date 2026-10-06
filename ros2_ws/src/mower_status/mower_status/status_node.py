@@ -1,4 +1,4 @@
-# Copyright 2017 Open Source Robotics Foundation, Inc.
+# Copyright 2026 Jamie
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,6 +34,9 @@ class StatusNode(Node):
         self.base_frame = str(self.get_parameter('base_frame').value)
         self.state = str(self.get_parameter('state').value)
         self.publish_count = 0
+        if self.rate <= 0.0:
+            self.get_logger().warning('Publish rate must be positive, defaulting to 2.0 Hz')
+            self.rate = 2.0
         self.publisher = self.create_publisher(DiagnosticStatus, '~/diagnostics', 1)
         self.timer = self.create_timer(1.0 / self.rate, self.on_timer)
         self.get_logger().info(f'status_node up at {self.rate} Hz for {self.robot_id}')
@@ -52,7 +55,6 @@ class StatusNode(Node):
         msg.values.append(KeyValue(key='base_frame', value=self.base_frame))
         self.publisher.publish(msg)
         self.publish_count += 1
-        self.get_logger().info(f'published OK for {self.robot_id}')
 
 
 def main() -> None:

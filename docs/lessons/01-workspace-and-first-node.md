@@ -8,9 +8,9 @@
 - [How `ros2 run` finds your code at all](#6-how-ros2-run-finds-your-code)
 - [colcon's build / install / source cycle, and what `--symlink-install` changes](#7-colcon-build-install-source)
 - [Declaring real dependencies in `package.xml`](#8-packagxml-is-not-decorative)
-- [A node: publisher, node-private topic name, and QoS depth](#9-nodes-topics-and-the-prefix)
+- [A node: node name, executable name, publisher, node-private topic name, and QoS depth](#9-nodes-topics-and-the-prefix)
 - [Building a message, and the two things that will bite you](#10-messages-and-two-things-that-bite)
-- [Parameters instead of magic numbers](#11-parameters-no-magic-numbers)
+- [Parameters instead of magic numbers, and why declaring is not validating](#11-parameters-no-magic-numbers)
 - [Timers](#12-timers)
 - [Logging through the node logger](#13-logging)
 - [Shutting down cleanly on Ctrl-C](#14-stopping-cleanly)
@@ -25,11 +25,11 @@ M0 in the spec is "Repo layout, Docker image, colcon build, one hello-world node
 
 This lesson is the first half of that: the layout decision, the build loop, and one real node in Python. Lesson 02 does the same node in C++ so you feel the difference between the two build systems. Lesson 03 makes `colcon test` mean something.
 
-The node you are going to build is not a throwaway hello-world. It is `mower_status`: the node that says a mower is alive and healthy. That node exists in the final system. M4 hangs the safety state machine off it, M6 draws it on a dashboard, and M7's fleet manager polls a fleet of them over MQTT to decide whether to reassign a mower's work. Everything you learn about parameters, private topic names, and message types here is used again in every one of those milestones.
+The node you are going to build is not a throwaway hello-world. It is the `status_node` in package `mower_status`: the node that says a mower is alive and healthy. That node exists in the final system. M4 hangs the safety state machine off it, M6 draws it on a dashboard, and M7's fleet manager polls a fleet of them over MQTT to decide whether to reassign a mower's work. Everything you learn about parameters, private topic names, and message types here is used again in every one of those milestones.
 
 ## 2. Verification table
 
-Everything in this lesson was run on this machine before being written down. The scratch package was `xp_hello_counter`, built in `/tmp/opencode/l01`, and deleted afterwards.
+Everything in this lesson was run on this machine before being written down. The scratch package was `xp_hello_counter`, built in `/tmp/opencode/l01` and later `/tmp/opencode/l01b`, and deleted afterwards. All runs used a dedicated `ROS_DOMAIN_ID`.
 
 | Claim | How it was checked | Result |
 |---|---|---|
@@ -52,6 +52,10 @@ Everything in this lesson was run on this machine before being written down. The
 | Catching `ExternalShutdownException` is what makes Ctrl-C clean | 6 runs of the worked example, `kill -INT` | 5 clean exits, 1 run let an `RCLError` escape (see [§14](#14-stopping-cleanly)) |
 | The scaffold's own lint tests can fail your build | `colcon test` on the scratch package | `1 failure`: `I100 Import statements are in the wrong order`, `W292 no newline at end of file`; after fixing, `5 tests, 0 errors, 0 failures, 1 skipped` |
 | One-node-per-package is the platform's own convention | `ros2 pkg executables` over all packages, counted per package | 45 of 84 executable-bearing packages ship exactly one executable; the multi-executable ones are demos (`demo_nodes_cpp` 28, `examples_rclcpp_minimal_subscriber` 10) |
+| A zero or negative `publish_rate` kills the node with a misleading traceback | `ros2 run ... -p publish_rate:=0.0` | `ZeroDivisionError: division by zero` from `create_timer(1.0 / self.rate)`, `Process exited with failure 1` — says nothing about which parameter was wrong |
+| A one-line guard turns that into a clear error | same run after `if self.rate <= 0.0: raise ValueError(...)` | `ValueError: publish_rate must be > 0, got 0.0`, exit 1, and `2>&1 \| grep -c ZeroDivisionError` prints `0`; normal runs unaffected |
+| `ParameterDescriptor` supports numeric ranges (offered in §11 as the alternative to a hand guard) | introspected `rcl_interfaces/msg/ParameterDescriptor` fields; declared a parameter with a range and called `describe_parameter` | `floating_point_range` present; `FloatingPointRange{from_value, to_value, step}`; `describe_parameter` returns the declared range — but `ros2 param describe` CLI prints an empty `Constraints:` block even so |
+| The RCLError race is not a one-off | re-measured after the first six runs | hit again on 1 of 2 fresh runs |
 
 Not yet verified: nothing in this lesson's worked example or assignment depends on Docker. That arrives in lesson 04.
 
@@ -302,6 +306,24 @@ Why it matters, concretely:
 
 A **node** is one process with one job. Nodes find each other by name at runtime; there is no central broker, no compile-time wiring. A **topic** is a named, typed channel. Publishers and subscribers agree on a topic name and a message type and nothing else. Neither knows the other's process, PID, or language.
 
+### The node name and the executable name are different things
+
+They are different axes even when they hold the same string, and confusing them changes your topic paths. This lesson sets both to `status_node`:
+
+| | value in this lesson | what it controls | where it is written |
+|---|---|---|---|
+| **node name** | `status_node` | the name on the graph: `ros2 node list`, `ros2 param list /<name>`, and the prefix of every `~/` topic | `super().__init__('status_node')` |
+| **executable name** | `status_node` | the command: `ros2 run mower_status status_node`, and the file under `install/mower_status/lib/mower_status/` | `setup.py`, left side of the `console_scripts` entry |
+
+Package `mower_status`, executable `status_node`, node `status_node`. So `ros2 run mower_status status_node` starts a node called `status_node`, publishing `/status_node/diagnostics`.
+
+Two things worth knowing about these being equal:
+
+- **It is the common convention.** nav2 runs executable `controller_server` as node `controller_server`, `bt_navigator` as `bt_navigator`. Making them equal means `ros2 run <pkg> <name>` tells you what `ros2 node list` will show, which is one less thing to hold in your head. The package name differs because a package can hold several executables.
+- **They are still set in two different places.** `ros2 pkg executables mower_status` prints `mower_status status_node` from `setup.py`. It cannot tell you the node name, because `setup.py` never sees the node. Change `super().__init__(...)` and every topic path moves while `ros2 run`'s syntax stays the same.
+
+If you ever want the node name to differ from the executable — for example `mower_status` as the node so topics read `/mower_01/mower_status/diagnostics` — that is a legitimate choice. It is a lesson decision rather than a code decision, because it changes §18's acceptance criteria, so raise it and the lesson gets changed in its own commit first.
+
 ```python
 self.publisher = self.create_publisher(DiagnosticStatus, '~/diagnostics', 1)
 ```
@@ -324,9 +346,11 @@ Verified with `ros2 topic list` while the node was running:
 
 Two of those three are free: every node gets `/rosout` (its log) and `/parameter_events` (parameter changes) automatically.
 
-Why private names matter for a mower: when M7 runs three mowers, `mower_status` started under namespace `/mower_01` publishes `/mower_01/mower_status/diagnostics`, and the node code does not change. If you had hard-coded `/diagnostics`, all three mowers would collide on one topic and the fleet manager could not tell whose status it is reading. **Use `~/` for anything the node itself owns.**
+Why private names matter for a mower: when M7 runs three mowers, the same `status_node` started under namespace `/mower_01` publishes `/mower_01/status_node/diagnostics`, and the node code does not change. If you had hard-coded `/diagnostics`, all three mowers would collide on one topic and the fleet manager could not tell whose status it is reading. **Use `~/` for anything the node itself owns.**
 
 What about the topic *name* being in the code? That is not a magic number. The topic name is the node's **interface** — its contract with the rest of the system — so it belongs in code where it is readable. Parameters are for *configuration*: rates, identities, frames, thresholds. Keeping that line straight is most of what "no hard-coded topics, names, distances, or rates" means in practice.
+
+**A skill and this lesson disagree here, and you should know it.** The `python-style` skill says "never hard-code topic names or rates. Use parameters." Read literally, `~/diagnostics` in `create_publisher` violates it. This lesson does not follow that reading, for two reasons: the topic is part of the node's published interface, and it is node-private (`~/`), so it is derived from the node name rather than fixed in the world — making it a parameter would let a launch file silently break every subscriber that expects that path. The skill's own companion rule (`ros2` skill) is "no hard-coded topics, names, distances, or rates" where the *rates* half clearly is configuration. So: rates, ids, frames, thresholds → parameters; the topic path that constitutes your interface → code. The reviewer will judge against this reading for lesson 01. If you would rather have the topic be a parameter too, say so and it becomes a decision record.
 
 The `1` is the QoS **queue depth**: how many messages to buffer if a subscriber is slow. For a periodic status heartbeat, the newest message makes the old ones worthless, so depth 1 is right. Sensor streams are different and we will measure that in M1.
 
@@ -425,6 +449,37 @@ Five hertz, because a parameter said so, with no recompile. Now imagine a fleet 
 
 `ros2 param list /widget_monitor` will also show `use_sim_time` and `start_type_description_service`. Every node gets those; they are not yours.
 
+### Declaring a parameter is not the same as validating it
+
+`declare_parameter` registers a name and a default. It does not check that the value makes sense. This one does:
+
+```bash
+ros2 run xp_hello_counter widget_monitor --ros-args -p publish_rate:=0.0
+```
+
+```
+Traceback (most recent call last):
+  File ".../install/xp_hello_counter/lib/xp_hello_counter/widget_monitor", line 33, in <module>
+    sys.exit(load_entry_point(...)())
+  File ".../build/xp_hello_counter/xp_hello_counter/widget_monitor.py", line 32, in main
+    node = WidgetMonitor()
+  File ".../build/xp_hello_counter/xp_hello_counter/widget_monitor.py", line 17, in __init__
+    self.timer = self.create_timer(1.0 / self.rate, self.on_timer)
+                                   ~~~~^~~~~~~~~~~
+ZeroDivisionError: division by zero
+[ros2run]: Process exited with failure 1
+```
+
+Verified on this machine. The node dies in `__init__`, before it has even told anyone it exists, and it takes a stack trace to the console rather than a useful message. A negative rate fails differently (the timer throws), and a `robot_id` of `''` would publish a blank `hardware_id` and sail straight through.
+
+Three ways to stop this, cheapest first:
+
+1. **Check it yourself** right after reading. Either fail with a message that names the parameter — `if self.rate <= 0.0: raise ValueError(f'publish_rate must be > 0, got {self.rate}')` — or, for a telemetry cadence like this one, warn and fall back to the safe default: `if self.rate <= 0.0: self.get_logger().warning('publish_rate must be positive, falling back to 2.0'); self.rate = 2.0`. Each is one line and actually says what is wrong. The difference matters in M4: fall back for *telemetry*, fail closed for *safety*. A geofence distance of `-5` must stop the mower, not quietly reset it.
+2. **Describe the valid range** on the declaration, which is what the platform provides for this: `declare_parameter` accepts a `ParameterDescriptor` whose `floating_point_range` field takes `FloatingPointRange(from_value, to_value, step)` — verified present in `rcl_interfaces/msg/ParameterDescriptor`. The running node's `describe_parameter` then returns the range, so anything that introspects parameters by name can read it. One caveat, verified while writing this: this distro's `ros2 param describe` CLI prints a `Constraints:` block but leaves it **empty** even when a range is set, so do not treat that tool as proof of the range yet — use `node.describe_parameter(name)` in code.
+3. **Reject it at set time** with `add_on_set_parameters_callback`, so a `ros2 param set` on a running node is refused instead of taking effect. That is the mechanism behind the stretch goal in this lesson and the mechanism M6's dashboard will use.
+
+Only 1 is required for the assignment: requirement 11 asks for exactly one of these behaviours — the accepted answer warns and falls back to the default — and [§18](#18-assignment-package-mower_status-node-status_node) has an acceptance criterion that proves it. Knowing 2 exists stops you from hand-rolling it in M4, where a geofence distance of `-5` metres would be a safety problem rather than a crash.
+
 ## 12. Timers
 
 ```python
@@ -443,15 +498,13 @@ self.get_logger().info(f'widget_monitor up at {self.rate} Hz for {self.widget_id
 
 Use `self.get_logger()`, never `print()`. The logger writes to `/rosout`, which means the line is timestamped, tagged with the node name, severity-filtered, and capturable by `ros2 bag record`. A `print()` in a node is invisible to every one of those, and in M6 you will want your logs in the dashboard.
 
-Real output:
+Real output from the worked example:
 
 ```
-[INFO] [1791233754.658209626] [widget_monitor]: widget_monitor up at 5.0 Hz for widget-z
-[INFO] [1791233754.848774495] [widget_monitor]: published OK for widget-z
-[INFO] [1791233755.047570322] [widget_monitor]: published OK for widget-z
+[INFO] [1791304237.077479920] [widget_monitor]: widget_monitor up at 5.0 Hz for widget-z
 ```
 
-Use `info` sparingly. At 5 Hz, an `info` line per publish is log spam that will cost you nothing now and cost you disk and signal-to-noise later. For the assignment, one startup line and one line when something changes is plenty.
+That is the only line it logs, even though the timer publishes every 200 ms. Use `info` sparingly: at 5 Hz, one line per publish is log spam that costs nothing now and costs you disk and signal-to-noise later, and it makes the one line you actually need harder to find. For the assignment, one startup line and one line when something changes is enough. When you do want to watch messages flow, `ros2 topic echo` is the right tool — it is not the logger's job to substitute for it.
 
 ## 14. Stopping cleanly
 
@@ -486,7 +539,7 @@ Here is the honest part. I ran the worked example six times and sent SIGINT each
 rclpy._rclpy_pybind11.RCLError: failed to initialize wait set: the given context is not valid, either rcl_init() was not called or rcl_shutdown() was called., at ./src/rcl/wait.c:110
 ```
 
-That is a race inside this distro's executor: the context is shut down while the wait set is being built. It is not your bug, and it is not worth catching by hand — the type lives in a private module (`rclpy._rclpy_pybind11`) and importing private API to suppress a 1-in-6 cosmetic traceback is a bad trade. Keep the canonical pattern, and if you hit that message on Ctrl-C, know that you have found a real quirk of Lyrical rather than broken code.
+That is a race inside this distro's executor: the context is shut down while the wait set is being built. It is not your bug, and it is not worth catching by hand — the type lives in a private module (`rclpy._rclpy_pybind11`) and importing private API to suppress a 1-in-6 cosmetic traceback is a bad trade. Keep the canonical pattern, and if you hit that message on Ctrl-C, know that you have found a real quirk of Lyrical rather than broken code. (I re-measured it while fixing this lesson: 1 of 2 fresh runs hit the race again, so treat that 1-in-6 as a floor, not a guarantee.)
 
 The `finally` block matters for a different reason: if a callback raises, the node still releases its DDS resources instead of leaving a zombie entity on the graph. M4's safety node will care about that.
 
@@ -537,7 +590,29 @@ $ colcon test-result
 Summary: 5 tests, 0 errors, 0 failures, 1 skipped
 ```
 
-The one skip is `test_copyright`, which the scaffold marks `@pytest.mark.skip` until you put a licence header on your source files. The project is Apache-2.0, so when you write `status_node.py`, give it the same 13-line Apache header the scaffold's own `test/` files carry. Copy it from `ros2_ws/src/mower_math/test/test_flake8.py`. Then remove the `@pytest.mark.skip` line so the check actually runs.
+The one skip is `test_copyright`, which the scaffold marks `@pytest.mark.skip` until you put a licence header on your source files. The project is Apache-2.0, so when you write `status_node.py`, give it an Apache-2.0 header:
+
+```
+# Copyright <year> <your name>
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+```
+
+**Change the first line to your own name and year.** The scaffolder's `test/` files carry `Copyright 2017 Open Source Robotics Foundation, Inc.` because they were written by OSRF and donated to the template. Copying that line onto your code puts someone else's name on your work.
+
+Which is worth knowing: `ament_copyright` checks that a licence header exists *and* that the licence text is well-formed. It does not check who the copyright holder claims to be. So `Copyright 2017 Open Source Robotics Foundation, Inc.` on your node passes `test_copyright` silently. The tool cannot catch that one for you.
+
+Then remove the `@pytest.mark.skip(...)` line from `ros2_ws/src/mower_status/test/test_copyright.py` so the check actually runs.
 
 Lesson 03 takes these five linters seriously and adds real unit tests. For now, just know they run and that `colcon test` is part of your build loop, not an optional extra.
 
@@ -593,7 +668,6 @@ class WidgetMonitor(Node):
         msg.message = 'nominal'
         msg.values = [KeyValue(key='uptime_s', value='0.0')]
         self.publisher.publish(msg)
-        self.get_logger().info(f'published OK for {self.widget_id}')
 
 
 def main() -> None:
@@ -672,12 +746,12 @@ ros2 run xp_hello_counter widget_monitor
 ```
 
 ```
-[INFO] [1791233754.658209626] [widget_monitor]: widget_monitor up at 2.0 Hz for widget-a
-[INFO] [1791233754.881320535] [widget_monitor]: published OK for widget-a
-[INFO] [1791233755.380349010] [widget_monitor]: published OK for widget-a
+[INFO] [1791304232.042509987] [widget_monitor]: widget_monitor up at 2.0 Hz for widget-a
 ```
 
 Ctrl-C to stop. Last line should be `[ros2run]: Received signal:  Interrupt` with no traceback ([§14](#14-stopping-cleanly)).
+
+One line, not one per publish. The timer is firing at 2 Hz and nothing about the widget's health changes between fires, so a line every 500 ms would be 32 identical lines in sixteen seconds — which is exactly what [§13](#13-logging) warns about. Verify it is publishing with `ros2 topic echo`, which is what that tool is for, not with log spam.
 
 ### Step 7: look at it from outside
 
@@ -726,7 +800,7 @@ ros2 run xp_hello_counter widget_monitor --ros-args -p publish_rate:=5.0 -p widg
 ```
 
 ```
-[INFO] [1791233754.658209626] [widget_monitor]: widget_monitor up at 5.0 Hz for widget-z
+[INFO] [1791304237.077479920] [widget_monitor]: widget_monitor up at 5.0 Hz for widget-z
 ```
 
 And from the other terminal:
@@ -762,7 +836,7 @@ rm -rf /tmp/lesson01
 
 ---
 
-## 18. Assignment: `mower_status`
+## 18. Assignment: package `mower_status`, node `status_node`
 
 **Language: Python.** Take the worked example and make it report on a mower instead of a widget.
 
@@ -776,8 +850,8 @@ rm -rf /tmp/lesson01
 
 **Node**
 
-4. A class inheriting `rclpy.node.Node`, node name `mower_status`, registered with the name `status_node`.
-5. Exactly three parameters, all declared, no magic numbers anywhere ([§11](#11-parameters-no-magic-numbers)):
+4. A class inheriting `rclpy.node.Node`, constructed as `super().__init__('status_node')` so the node name on the graph is `status_node`, matching the executable ([§9](#9-nodes-topics-and-the-prefix)).
+5. Three core parameters, all declared, no magic numbers anywhere — the stretch goal adds a fourth, `state`, and that is allowed without touching these ([§11](#11-parameters-no-magic-numbers)):
 
    | name | type | meaning |
    |---|---|---|
@@ -797,7 +871,8 @@ rm -rf /tmp/lesson01
 
 8. The status text is produced by a **pure function** — a plain function that depends only on its arguments, has no `self`, touches no ROS state, and returns a value — living in its own module (for example `mower_status/status_format.py`) that **imports no `rclpy`** ([§15](#15-keep-the-string-out-of-the-node)). `status_node.py` reads the parameters and calls it; it does not format the string itself.
 9. `main()` uses the pattern from [§14](#14-stopping-cleanly): `rclpy.init()`, `try` / `except (KeyboardInterrupt, ExternalShutdownException)` / `finally` with `destroy_node()` and `rclpy.shutdown()`. Log with `self.get_logger()`; no `print()` ([§13](#13-logging)).
-10. Source files carry the Apache-2.0 header (copy it from `ros2_ws/src/mower_math/test/test_flake8.py`), and the `@pytest.mark.skip` on `test_copyright` in `ros2_ws/src/mower_status/test/test_copyright.py` is removed so the check runs ([§16](#16-the-scaffolds-lint-tests-are-not-optional)).
+10. Source files carry an Apache-2.0 header naming **you** as the copyright holder, and the `@pytest.mark.skip` on `test_copyright` in `ros2_ws/src/mower_status/test/test_copyright.py` is removed so the check runs ([§16](#16-the-scaffolds-lint-tests-are-not-optional)).
+11. Parameter values are checked after reading, before use, and a bad one never reaches the timer as a traceback: something like `publish_rate = 0` is handled cleanly, either refuse-with-message or warn-and-fall-back-to-the-safe-default ([§11](#11-parameters-no-magic-numbers)). At minimum `publish_rate <= 0` is handled one of those two ways.
 
 **Leave alone**
 
@@ -809,8 +884,8 @@ rm -rf /tmp/lesson01
 |---|---|
 | Node | `status_node` |
 | Executable | `ros2 run mower_status status_node` |
-| Publishes | `~/diagnostics` → `status_node/diagnostics`, type `diagnostic_msgs/msg/DiagnosticStatus`, QoS depth 1 |
-| Parameters | `robot_id` (string), `publish_rate` (double), `base_frame` (string) |
+| Publishes | `~/diagnostics` → `/status_node/diagnostics`, type `diagnostic_msgs/msg/DiagnosticStatus`, QoS depth 1 |
+| Parameters | `robot_id` (string), `publish_rate` (double), `base_frame` (string); plus `state` if you take the stretch |
 
 ### Acceptance criteria
 
@@ -820,11 +895,11 @@ Each of these is a command. All of them must pass.
 cd ~/mower-sim/ros2_ws
 source /opt/ros/lyrical/setup.bash
 colcon build --symlink-install
-colcon test
-colcon test-result --verbose
+colcon test --packages-select mower_status
+colcon test-result --test-result-base build/mower_status --verbose
 ```
 
-- [ ] `colcon test-result --verbose` ends with `0 failures` (one skip allowed only if `test_copyright` has been enabled and passes).
+- [ ] The result for `mower_status` shows `5 tests, 0 errors, 0 failures, 0 skipped` — five, because after enabling `test_copyright` you have five tests and none of them skip. Scope the check to your package (`--test-result-base build/mower_status`) rather than reading the workspace-wide summary: `mower_math` is an untouched scaffold whose `test_copyright` skip stays until lesson 03, and its skip is not this assignment's failure.
 - [ ] No `TODO` in `ros2_ws/src/mower_status/`.
 
 ```bash
@@ -849,8 +924,8 @@ ros2 topic echo --once /status_node/diagnostics
 ros2 topic hz /status_node/diagnostics
 ```
 
-- [ ] `ros2 param list` shows all three parameters.
-- [ ] `ros2 topic echo --once` shows `level: "\0"`, `name: mower_status`, your `robot_id` in `hardware_id`, a non-empty `message`, and at least two `values` entries.
+- [ ] `ros2 param list` shows `robot_id`, `publish_rate`, and `base_frame` (and `state`, since the accepted answer takes the stretch).
+- [ ] `ros2 topic echo --once` shows `level: "\0"`, `name: status_node`, your `robot_id` in `hardware_id`, a non-empty `message`, and at least two `values` entries.
 - [ ] `ros2 topic hz` reports approximately `publish_rate`.
 
 Override check, with the node stopped:
@@ -862,6 +937,15 @@ ros2 run mower_status status_node --ros-args -p robot_id:=mower-02 -p base_frame
 - [ ] `ros2 topic echo --once /status_node/diagnostics` shows `hardware_id: mower-02`.
 - [ ] `ros2 topic hz /status_node/diagnostics` reports approximately `5.0`.
 
+Bad-parameter check, with the node stopped:
+
+```bash
+ros2 run mower_status status_node --ros-args -p publish_rate:=0.0
+```
+
+- [ ] Within a second the node logs a **warning that names `publish_rate`** (for example `Publish rate must be positive, falling back to 2.0 Hz`) and keeps running at the safe default — you can verify it is still alive with `ros2 node list`.
+- [ ] `ZeroDivisionError` does **not** appear anywhere. Without the guard it does — verified on this machine, where an unguarded node dies in `create_timer(1.0 / self.rate)` instead of saying which parameter was wrong.
+
 Purity check:
 
 ```bash
@@ -872,7 +956,7 @@ grep -n rclpy ~/mower-sim/ros2_ws/src/mower_status/mower_status/status_format.py
 
 ### Stretch goal
 
-Make the level mean something. Add a fourth parameter, `state` (string, default `nominal`), and map it to a severity: `nominal` → `OK`, anything else → `WARN`, with `STALE` if the node has not published in the last second. That is a two-line change now, and in M4 `state` becomes the output of the safety state machine and `level` becomes what the fleet manager watches. If you want more, have the node take a parameter callback so the level can be changed on a running node with `ros2 param set` — that is the mechanism M6's dashboard uses to pause a mission.
+Make the level mean something. Add a fourth parameter, `state` (string, default `nominal`), and map it to a severity: `nominal` → `OK`, anything else → `WARN`, with `STALE` if the node has not published in the last second. That is a two-line change now, and in M4 `state` becomes the output of the safety state machine and `level` becomes what the fleet manager watches. The accepted answer implements `state` and the severity mapping; the `STALE` timer clause and the parameter callback (so `ros2 param set state:=degraded` changes a running node — the mechanism M6's dashboard uses to pause a mission) remain the further bonus.
 
 ## 19. Where this leaves M0
 

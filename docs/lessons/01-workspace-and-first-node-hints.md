@@ -14,7 +14,7 @@ You have not sourced the workspace in this shell. `source install/setup.bash` fr
 
 Two possibilities. You did not rebuild. Or you did not source again after rebuilding. Both are common; do both.
 
-**`ros2 topic list` does not show `/mower_status/diagnostics`.**
+**`ros2 topic list` does not show `/status_node/diagnostics`.**
 
 Check three things in order: is the node actually running, is the topic name `~/diagnostics` (with the tilde, and spelled `diagnostics`), and are you looking at the same `ROS_DOMAIN_ID` as the node. Run `ros2 node list` — if your node is not in that list, nothing else matters.
 
@@ -36,7 +36,7 @@ You probably created the `DiagnosticStatus()`, filled it in a local variable, an
 
 **`ros2 topic hz` reports a different rate than you set.**
 
-You set `publish_rate` but the node was started without the override, or you are watching a leftover node from a previous run. `ros2 node list` and `ros2 param get /mower_status publish_rate` will tell you which node you are actually looking at.
+You set `publish_rate` but the node was started without the override, or you are watching a leftover node from a previous run. `ros2 node list` and `ros2 param get /status_node publish_rate` will tell you which node you are actually looking at.
 
 ---
 
@@ -81,7 +81,7 @@ The constants live on the class you imported, so `DiagnosticStatus.OK` works wit
 
 **Clean shutdown.** Three things, all in `main()`: `rclpy.init()` before you construct the node, a `try` around `rclpy.spin(node)`, and a `finally` that calls `node.destroy_node()` then `rclpy.shutdown()`. The `except` clause catches a tuple of two exception types, one of which you must import from `rclpy.executors`.
 
-**The Apache header.** Every file in `ros2_ws/src/mower_math/test/` starts with the same 13-line comment block. Copy it to the top of each new source file. Then open `ros2_ws/src/mower_status/test/test_copyright.py`, find the `@pytest.mark.skip(...)` line, and delete it, so the copyright test actually checks something.
+**The Apache header.** Every file in `ros2_ws/src/mower_math/test/` starts with a 13-line Apache-2.0 comment block — copy the structure, but **change the first line to `Copyright 2026 Jamie`**, not OSRF's. Those test files say `Copyright 2017 Open Source Robotics Foundation, Inc.` because OSRF wrote them for the template; that name is not the holder of your code. `ament_copyright` checks the licence text, not who claims it, so a wrong name passes silently. Then open `ros2_ws/src/mower_status/test/test_copyright.py`, find the `@pytest.mark.skip(...)` line, and delete it, so the copyright test actually checks something.
 
 ---
 
@@ -121,7 +121,7 @@ class MowerStatus(Node):
     """Publishes this mower's health as a diagnostic_msgs/msg/DiagnosticStatus."""
 
     def __init__(self) -> None:
-        super().__init__('mower_status')
+        super().__init__('status_node')
         self.declare_parameter('robot_id', 'mower-01')
         self.declare_parameter('publish_rate', 1.0)
         self.declare_parameter('base_frame', 'base_link')
@@ -134,13 +134,13 @@ class MowerStatus(Node):
         self.publisher = self.create_publisher(DiagnosticStatus, '~/diagnostics', 1)
         self.timer = self.create_timer(1.0 / self.rate, self.on_publish)
         self.get_logger().info(
-            f'mower_status up: id={self.robot_id} rate={self.rate} frame={self.base_frame}')
+            f'status_node up: id={self.robot_id} rate={self.rate} frame={self.base_frame}')
 
     def on_publish(self) -> None:
         self.publish_count += 1
         msg = DiagnosticStatus()
         msg.level = DiagnosticStatus.OK
-        msg.name = 'mower_status'
+        msg.name = 'status_node'
         msg.hardware_id = self.robot_id
         msg.message = format_status_message(self.robot_id, 'nominal')
         msg.values = [
@@ -183,11 +183,11 @@ if __name__ == '__main__':
   <depend>diagnostic_msgs</depend>
 ```
 
-**What `ros2 topic echo --once /mower_status/diagnostics` should look like**
+**What `ros2 topic echo --once /status_node/diagnostics` should look like**
 
 ```
 level: "\0"
-name: mower_status
+name: status_node
 message: mower-01 reporting nominal
 hardware_id: mower-01
 values:
