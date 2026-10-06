@@ -87,7 +87,7 @@ COPY ros2_ws/src /ws/ros2_ws/src
 **`docker/entrypoint.sh` (optional convenience):**
 ```bash
 #!/usr/bin/env bash
-set -euo pipefail
+set -eo pipefail
 cd /ws/ros2_ws
 source /opt/ros/lyrical/setup.bash
 colcon build --symlink-install

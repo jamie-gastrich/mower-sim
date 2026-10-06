@@ -10,7 +10,7 @@ I'm building it to learn professional ROS 2, C++, and Python by working through 
 
 | # | Milestone | State |
 |---|---|---|
-| M0 | Workspace and tooling (Docker, colcon, Python `mower_status` node, tests) | in progress |
+| M0 | Workspace and tooling (Docker, colcon, Python `mower_status` node, tests) | done |
 | M1 | Mower model and 2D sim (kinematics, odometry + IMU) | not started |
 | M2 | Localization (simulated RTK GNSS + IMU + odometry, EKF) | not started |
 | M3 | Stripe planning and path tracking | not started |
@@ -23,6 +23,8 @@ I'm building it to learn professional ROS 2, C++, and Python by working through 
 
 Full details and "done when" criteria are in [`spec/mower-spec.md`](spec/mower-spec.md).
 
+M0 verified by: `docker build -t mower-sim:m0 -f docker/Dockerfile .` (incl. `--no-cache` rebuild) then `docker run --rm -t mower-sim:m0 bash -lc "cd /ws/ros2_ws && source /opt/ros/lyrical/setup.bash && colcon build --symlink-install && source install/setup.bash && colcon test --packages-select mower_math mower_status && colcon test-result --test-result-base build/mower_math --verbose && colcon test-result --test-result-base build/mower_status --verbose"` → `mower_math: 13 tests, 0 errors, 0 failures, 0 skipped`; `mower_status: 7 tests, 0 errors, 0 failures, 0 skipped` (see `docs/reviews/04-docker-reproducible-environment.md`).
+
 ## How I work
 
 - **I write the code.** AI agents act as a professor (teaches a concept, assigns the build) and a reviewer (critiques it against the end-product spec). See [`AGENTS.md`](AGENTS.md).
@@ -32,7 +34,39 @@ Full details and "done when" criteria are in [`spec/mower-spec.md`](spec/mower-s
 
 ## Quick start
 
-Not available yet. This section will hold the Docker and colcon build commands once M0 is verified.
+M0 is verified: the workspace builds and its tests pass in a fresh container. The exact commands and their output are in [`docs/reviews/04-docker-reproducible-environment.md`](docs/reviews/04-docker-reproducible-environment.md).
+
+**Docker (the verified path):**
+
+```bash
+docker build -t mower-sim:m0 -f docker/Dockerfile .
+```
+
+One-shot build + test, the sequence the review ran:
+
+```bash
+docker run --rm -t mower-sim:m0 bash -lc "\
+  cd /ws/ros2_ws && \
+  source /opt/ros/lyrical/setup.bash && \
+  colcon build --symlink-install && \
+  source install/setup.bash && \
+  colcon test --packages-select mower_math mower_status && \
+  colcon test-result --test-result-base build/mower_math --verbose && \
+  colcon test-result --test-result-base build/mower_status --verbose"
+```
+
+Expected: `mower_math` 13 tests and `mower_status` 7 tests, 0 failures, 0 skipped. An interactive shell lands in `/ws` (`docker run --rm -it mower-sim:m0`).
+
+**Host (ROS 2 Lyrical at `/opt/ros/lyrical`):**
+
+```bash
+cd ros2_ws
+source /opt/ros/lyrical/setup.bash
+colcon build --symlink-install
+source install/setup.bash
+colcon test
+colcon test-result --verbose
+```
 
 ## Layout
 
