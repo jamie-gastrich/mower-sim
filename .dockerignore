@@ -1,0 +1,9 @@
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+log/
+.git/
+__pycache__/
+*.pyc
+.pytest_cache/
+.gitignore
