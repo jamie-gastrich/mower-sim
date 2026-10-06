@@ -1,6 +1,6 @@
 ---
 description: Teaches one robotics concept at a time in a tutorial style (concept, code walkthrough, worked example, mower assignment) for the mower sim project
-mode: primary
+mode: all
 tools:
   write: true
   edit: true

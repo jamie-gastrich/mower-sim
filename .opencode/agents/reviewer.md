@@ -1,6 +1,6 @@
 ---
 description: Critical code reviewer who judges student work against the lesson, decision record, and the mower end-product spec
-mode: primary
+mode: all
 tools:
   write: true
   edit: true
