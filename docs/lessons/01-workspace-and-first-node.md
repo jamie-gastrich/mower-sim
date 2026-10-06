@@ -788,14 +788,14 @@ rm -rf /tmp/lesson01
 6. Publishes `diagnostic_msgs/msg/DiagnosticStatus` on the node-private topic `~/diagnostics`, QoS depth 1, from a timer at `publish_rate` ([§9](#9-nodes-topics-and-the-prefix), [§12](#12-timers)).
 7. Each published message sets:
    - `level`, using the named constant — `DiagnosticStatus.OK`. Never a raw `0`.
-   - `name` = `'mower_status'`
+   - `name` = `'status_node'`
    - `hardware_id` = the `robot_id` parameter
-   - `message` = the return value of a pure function (see below)
+   - `message` = the return value of the pure function described in requirement 8, defined and taught in [§15](#15-keep-the-string-out-of-the-node)
    - `values` = at least two `KeyValue` entries: one for `base_frame` from the parameter, and one for a value that changes at runtime (for example `publish_count`, the number of messages this node has published since start).
 
 **Structure**
 
-8. The status text is produced by a function in its own module (for example `mower_status/status_format.py`) that **imports no `rclpy`** and takes plain arguments ([§15](#15-keep-the-string-out-of-the-node)). `status_node.py` calls it.
+8. The status text is produced by a **pure function** — a plain function that depends only on its arguments, has no `self`, touches no ROS state, and returns a value — living in its own module (for example `mower_status/status_format.py`) that **imports no `rclpy`** ([§15](#15-keep-the-string-out-of-the-node)). `status_node.py` reads the parameters and calls it; it does not format the string itself.
 9. `main()` uses the pattern from [§14](#14-stopping-cleanly): `rclpy.init()`, `try` / `except (KeyboardInterrupt, ExternalShutdownException)` / `finally` with `destroy_node()` and `rclpy.shutdown()`. Log with `self.get_logger()`; no `print()` ([§13](#13-logging)).
 10. Source files carry the Apache-2.0 header (copy it from `ros2_ws/src/mower_math/test/test_flake8.py`), and the `@pytest.mark.skip` on `test_copyright` in `ros2_ws/src/mower_status/test/test_copyright.py` is removed so the check runs ([§16](#16-the-scaffolds-lint-tests-are-not-optional)).
 
@@ -807,9 +807,9 @@ rm -rf /tmp/lesson01
 
 | | |
 |---|---|
-| Node | `mower_status` |
+| Node | `status_node` |
 | Executable | `ros2 run mower_status status_node` |
-| Publishes | `~/diagnostics` → `/mower_status/diagnostics`, type `diagnostic_msgs/msg/DiagnosticStatus`, QoS depth 1 |
+| Publishes | `~/diagnostics` → `status_node/diagnostics`, type `diagnostic_msgs/msg/DiagnosticStatus`, QoS depth 1 |
 | Parameters | `robot_id` (string), `publish_rate` (double), `base_frame` (string) |
 
 ### Acceptance criteria
@@ -844,9 +844,9 @@ ros2 run mower_status status_node
 In a second terminal, `source /opt/ros/lyrical/setup.bash && source ~/mower-sim/ros2_ws/install/setup.bash`:
 
 ```bash
-ros2 param list /mower_status
-ros2 topic echo --once /mower_status/diagnostics
-ros2 topic hz /mower_status/diagnostics
+ros2 param list /status_node
+ros2 topic echo --once /status_node/diagnostics
+ros2 topic hz /status_node/diagnostics
 ```
 
 - [ ] `ros2 param list` shows all three parameters.
@@ -859,8 +859,8 @@ Override check, with the node stopped:
 ros2 run mower_status status_node --ros-args -p robot_id:=mower-02 -p base_frame:=base_link -p publish_rate:=5.0
 ```
 
-- [ ] `ros2 topic echo --once /mower_status/diagnostics` shows `hardware_id: mower-02`.
-- [ ] `ros2 topic hz /mower_status/diagnostics` reports approximately `5.0`.
+- [ ] `ros2 topic echo --once /status_node/diagnostics` shows `hardware_id: mower-02`.
+- [ ] `ros2 topic hz /status_node/diagnostics` reports approximately `5.0`.
 
 Purity check:
 
