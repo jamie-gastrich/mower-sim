@@ -1,4 +1,4 @@
-# Copyright 2015 Open Source Robotics Foundation, Inc.
+# Copyright 2026 Jamie
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ament_copyright.main import main
-import pytest
+def clamp(value: float, low: float, high: float) -> float:
+    """Clamp a value between low and high."""
+    return max(low, min(high, value))
 
 
-@pytest.mark.copyright
-@pytest.mark.linter
-def test_copyright() -> None:
-    rc = main(argv=['.', 'test'])
-    assert rc == 0, 'Found errors'
+def wrap_angle_rad(angle: float) -> float:
+    """Wrap an angle in radians to the range [-π, π]."""
+    import math as m
+    return m.atan2(m.sin(angle), m.cos(angle))

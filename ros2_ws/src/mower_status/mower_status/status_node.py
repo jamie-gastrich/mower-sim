@@ -17,7 +17,7 @@ import rclpy
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 
-from .status_format import format_status_message
+from .status_format import DEFAULT_PUBLISH_RATE, format_status_message, validate_publish_rate
 
 
 class StatusNode(Node):
@@ -26,17 +26,18 @@ class StatusNode(Node):
     def __init__(self) -> None:
         super().__init__('status_node')
         self.declare_parameter('robot_id', 'mower-01')
-        self.declare_parameter('publish_rate', 2.0)
+        self.declare_parameter('publish_rate', DEFAULT_PUBLISH_RATE)
         self.declare_parameter('base_frame', 'base_link')
         self.declare_parameter('state', 'nominal')
-        self.rate = float(self.get_parameter('publish_rate').value)
+        raw_rate = float(self.get_parameter('publish_rate').value)
+        self.rate = validate_publish_rate(raw_rate)
+        if self.rate != raw_rate:
+            self.get_logger().warning(
+                f'publish_rate must be positive, falling back to {self.rate} Hz')
         self.robot_id = str(self.get_parameter('robot_id').value)
         self.base_frame = str(self.get_parameter('base_frame').value)
         self.state = str(self.get_parameter('state').value)
         self.publish_count = 0
-        if self.rate <= 0.0:
-            self.get_logger().warning('Publish rate must be positive, defaulting to 2.0 Hz')
-            self.rate = 2.0
         self.publisher = self.create_publisher(DiagnosticStatus, '~/diagnostics', 1)
         self.timer = self.create_timer(1.0 / self.rate, self.on_timer)
         self.get_logger().info(f'status_node up at {self.rate} Hz for {self.robot_id}')

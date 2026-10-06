@@ -12,12 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-def format_status_message(robot_id: str, state: str) -> str:
-    return f'{robot_id}: {state}'
+from mower_math.math_utils import clamp, wrap_angle_rad
+import pytest
 
 
-DEFAULT_PUBLISH_RATE: float = 2.0
+@pytest.mark.parametrize(
+    """value, low, high, expected""",
+    [
+        (5.0, 0.0, 3.0, 3.0),   # above the range
+        (-1.0, 0.0, 3.0, 0.0),  # below the range
+        (2.0, 0.0, 3.0, 2.0),   # inside the range
+    ],
+)
+def test_clamp(value: float, low: float, high: float, expected: float) -> None:
+    assert clamp(value, low, high) == expected
 
 
-def validate_publish_rate(rate: float) -> float:
-    return rate if rate > 0.0 else DEFAULT_PUBLISH_RATE
+def test_wrap_angle_rad_keeps_range() -> None:
+    angle = wrap_angle_rad(3.0 * 3.14)
+    assert -3.141593 <= angle <= 3.141593
