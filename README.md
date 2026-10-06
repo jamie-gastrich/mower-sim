@@ -4,13 +4,13 @@ A ROS 2 simulation of an autonomous fairway mower: GNSS-based localization, stri
 
 I'm building it to learn professional ROS 2, C++, and Python by working through the problems an autonomous mowing system has to solve, one milestone at a time.
 
-> **Status: just started.** Nothing here has been built yet. Per the repo's rule, a claim is either verified by a command in this repo or marked as not yet verified, so every milestone below starts as "not started."
+> **Status: M0 in progress.** Lesson 01 passed review — `mower_status` builds, its five tests pass, and the node runs with parameters driving behaviour, all verified by the commands in `docs/reviews/01-workspace-and-first-node.md`. Docker and the C++ node (M0's remaining done-when) are still to come; every other milestone below is not started.
 
 ## Milestones
 
 | # | Milestone | State |
 |---|---|---|
-| M0 | Workspace and tooling (Docker, colcon, Python + C++ hello world, tests) | not started |
+| M0 | Workspace and tooling (Docker, colcon, Python + C++ hello world, tests) | in progress |
 | M1 | Mower model and 2D sim (kinematics, odometry + IMU) | not started |
 | M2 | Localization (simulated RTK GNSS + IMU + odometry, EKF) | not started |
 | M3 | Stripe planning and path tracking | not started |
