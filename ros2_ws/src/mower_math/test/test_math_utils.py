@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from math import pi as math_pi
+
 from mower_math.math_utils import clamp, wrap_angle_rad
 import pytest
 
@@ -28,6 +30,6 @@ def test_clamp(value: float, low: float, high: float, expected: float) -> None:
     assert clamp(value, low, high) == expected
 
 
-def test_wrap_angle_rad_keeps_range() -> None:
-    angle = wrap_angle_rad(3.0 * 3.14)
-    assert -3.141593 <= angle <= 3.141593
+@pytest.mark.parametrize('angle', [3.5, -3.5, 10.0, -10.0, 3.1415926535])
+def test_wrap_angle_rad_stays_in_range(angle: float) -> None:
+    assert -math_pi < wrap_angle_rad(angle) <= math_pi

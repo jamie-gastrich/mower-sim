@@ -12,9 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from mower_status.status_format import DEFAULT_PUBLISH_RATE
-from mower_status.status_format import format_status_message
-from mower_status.status_format import validate_publish_rate
+from mower_status.status_format import (
+    DEFAULT_PUBLISH_RATE,
+    format_status_message,
+    validate_publish_rate,
+)
 
 
 def test_format_status_message():

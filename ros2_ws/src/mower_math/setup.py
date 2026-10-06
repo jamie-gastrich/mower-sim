@@ -16,7 +16,7 @@ setup(
     zip_safe=True,
     maintainer='Jamie',
     maintainer_email='jamie-gastrich@users.noreply.github.com',
-    description='TODO: Package description',
+    description='Performs necessary mathematical operations for the mower simulation',
     license='Apache-2.0',
     extras_require={
         'test': [

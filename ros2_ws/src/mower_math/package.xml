@@ -3,7 +3,7 @@
 <package format="3">
   <name>mower_math</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>Performs necessary mathematical operations for the mower simulation</description>
   <maintainer email="jamie-gastrich@users.noreply.github.com">Jamie</maintainer>
   <license>Apache-2.0</license>
 

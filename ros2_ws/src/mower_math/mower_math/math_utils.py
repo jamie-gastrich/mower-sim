@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
+
+
 def clamp(value: float, low: float, high: float) -> float:
     """Clamp a value between low and high."""
     return max(low, min(high, value))
@@ -19,5 +22,4 @@ def clamp(value: float, low: float, high: float) -> float:
 
 def wrap_angle_rad(angle: float) -> float:
     """Wrap an angle in radians to the range [-π, π]."""
-    import math as m
-    return m.atan2(m.sin(angle), m.cos(angle))
+    return math.atan2(math.sin(angle), math.cos(angle))
