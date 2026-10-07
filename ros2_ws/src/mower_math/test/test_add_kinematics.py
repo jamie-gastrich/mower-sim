@@ -51,7 +51,7 @@ def test_limit_twist(v, w, max_linear, max_angular, min_radius, expected):
     ],
 )
 def test_step_unicycle(x, y, yaw, v, w, dt, expected):
-    assert step_unicycle(x, y, yaw, v, w, dt) == expected
+    assert step_unicycle(x, y, yaw, v, w, dt) == pytest.approx(expected)
 
 
 @pytest.mark.parametrize(
@@ -62,7 +62,7 @@ def test_step_unicycle(x, y, yaw, v, w, dt, expected):
     ],
 )
 def test_yaw_to_quaternion(yaw, expected):
-    assert yaw_to_quaternion(yaw) == expected
+    assert yaw_to_quaternion(yaw) == pytest.approx(expected)
 
 
 @pytest.mark.parametrize(

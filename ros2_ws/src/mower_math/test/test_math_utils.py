@@ -30,6 +30,6 @@ def test_clamp(value: float, low: float, high: float, expected: float) -> None:
     assert clamp(value, low, high) == expected
 
 
-@pytest.mark.parametrize('angle', [3.5, -3.5, 10.0, -10.0, 3.1415926535, -3.1415926535])
+@pytest.mark.parametrize('angle', [3.5, -3.5, 10.0, -10.0, math_pi, -math_pi])
 def test_wrap_angle_rad_stays_in_range(angle: float) -> None:
     assert -math_pi < wrap_angle_rad(angle) <= math_pi

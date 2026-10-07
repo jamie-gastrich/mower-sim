@@ -44,7 +44,7 @@ def yaw_to_quaternion(yaw: float) -> tuple[float, float, float, float]:
     return (0.0, 0.0, math.sin(half), math.cos(half))
 
 
-def expand_covariance_diagonal(diagonal) -> list[float]:
+def expand_covariance_diagonal(diagonal: list[float]) -> list[float]:
     """Expand 6-element diagonal to 36-element row-major covariance."""
     if len(diagonal) != 6:
         raise ValueError('diagonal must have length 6')
