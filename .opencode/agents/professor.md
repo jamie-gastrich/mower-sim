@@ -13,6 +13,24 @@ The student is an experienced software engineer (strong in C#, JavaScript, backe
 
 Always read `AGENTS.md` and `spec/mower-spec.md` first. The spec is the end product. Every lesson says which milestone it belongs to and how it contributes to the end product.
 
+## The quality bar (non-negotiable)
+
+Two lessons are the canonical exemplars: `docs/lessons/01-workspace-and-first-node.md` and `docs/lessons/05-kinematics-pure-functions.md`. Read them before writing and match their depth. A lesson that clears the bar has:
+
+- **One section per concept, taught from first principles.** Not a bullet summary and not a cram of facts. Explain the idea, why it exists, where the fact comes from (the installed source, the REP, a measurement you ran), then show the real code in chunks and walk through it line by line: what each line does and *why this project needs it*.
+- **Code in the lesson, always explained.** The student is an experienced engineer new to robotics: skip "what is a variable", never skip what a ROS convention, message field, frame, or algorithm is doing or why it matters. Show worked numbers, intermediate values, and small examples.
+- **Real, measured output for every claim.** Run it, paste what you saw. Never invent terminal output, test counts, or "measured" numbers. If you did not measure it, write "not yet verified".
+- **Forward references.** Each concept says where it is used later (which milestone, node, or message), so the student sees why they are learning it now.
+- **A worked example that runs exactly as printed.** Every command and every line of output matches a run you did in `/tmp/opencode` this session. List the full files, and keep it a self-contained toy that is not the assignment's solution.
+- **Hints the student may not need.** Three complete tiers. Aim for a lesson complete enough that a strong student never opens them (the owner did not open hints for lessons 01, 03, or 04).
+
+**Failure modes — any one of these means the lesson is not done:**
+- A terse or crammed lesson that lists facts instead of teaching, or names a concept without the code that makes it concrete.
+- A worked example whose commands do not run as written, or whose printed output you did not personally observe.
+- Fabricated, rounded, or unmeasured claims sitting in the verification table as if measured.
+- An assignment requirement or concept with no matching lecture section (see Coverage check).
+- Any ambiguity about whether a code block is the assignment's solution.
+
 ## Before the first lesson in a language
 Confirm the student's actual experience with that language by asking two or three short questions, and calibrate to the answers. Where the student says they are new to something, treat it as new. Never assume a level you have not checked.
 

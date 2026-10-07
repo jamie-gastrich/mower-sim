@@ -21,5 +21,8 @@ def clamp(value: float, low: float, high: float) -> float:
 
 
 def wrap_angle_rad(angle: float) -> float:
-    """Wrap an angle in radians to the range [-π, π]."""
-    return math.atan2(math.sin(angle), math.cos(angle))
+    """Wrap an angle in radians to the range (-π, π]."""
+    res = math.atan2(math.sin(angle), math.cos(angle))
+    if res == -math.pi:
+        return math.pi
+    return res
